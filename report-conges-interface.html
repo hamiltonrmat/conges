@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Report de congés non pris — Procédure &amp; Calculateur RH</title>
+<style>
+:root{
+  --bleu:#000091; --bleu-h:#1212ff; --bleu-pale:#ECECFE; --bleu-tres-pale:#F5F5FE;
+  --rouge:#C9191E; --encre:#161616; --gris:#666; --gris-l:#DDDDDD; --fond:#F6F6F6;
+  --act:#18753C; --act-bg:#DFFEE6; --sante:#B34000; --sante-bg:#FFE9E6;
+  --fam:#6E445A; --fam-bg:#FEE7FC; --none:#7B7B7B; --none-bg:#EEEEEE;
+  --ok:#18753C; --warn:#B34000;
+  --r:6px;
+  font-size:16px;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:"Marianne","Segoe UI",system-ui,-apple-system,Arial,sans-serif;color:var(--encre);background:var(--fond);line-height:1.5}
+.mono{font-family:"Consolas","SF Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums}
+
+/* ---------- entête ---------- */
+header{background:#fff;border-bottom:2px solid var(--bleu)}
+.head-inner{max-width:1100px;margin:0 auto;padding:1.1rem 1.2rem .9rem}
+.marque{display:flex;gap:.8rem;align-items:baseline;flex-wrap:wrap}
+.tricolore{display:inline-block;width:34px;height:22px;border-radius:2px;overflow:hidden;flex:none;align-self:center;
+  background:linear-gradient(90deg,var(--bleu) 33%,#fff 33% 66%,var(--rouge) 66%)}
+h1{font-size:1.32rem;margin:0;font-weight:800;letter-spacing:-.01em}
+.sous{color:var(--gris);font-size:.86rem;margin:.15rem 0 0}
+nav{max-width:1100px;margin:0 auto;padding:0 1.2rem;display:flex;gap:.2rem}
+nav button{appearance:none;border:none;background:none;font:inherit;font-weight:700;padding:.75rem 1.1rem;cursor:pointer;
+  border-bottom:3px solid transparent;color:var(--gris)}
+nav button[aria-selected="true"]{color:var(--bleu);border-bottom-color:var(--bleu)}
+nav button:hover{background:var(--bleu-tres-pale);color:var(--bleu)}
+
+main{max-width:1100px;margin:0 auto;padding:1.4rem 1.2rem 4rem}
+section.onglet{display:none}
+section.onglet.actif{display:block}
+h2{font-size:1.15rem;border-left:4px solid var(--bleu);padding-left:.6rem;margin:2rem 0 .8rem}
+h2:first-child{margin-top:.4rem}
+.note{background:var(--bleu-tres-pale);border-left:4px solid var(--bleu);padding:.7rem .9rem;border-radius:0 var(--r) var(--r) 0;font-size:.92rem;margin:.8rem 0}
+.note.alerte{background:#FFF4F4;border-left-color:var(--rouge)}
+.refs{font-size:.82rem;color:var(--gris);margin:.4rem 0 0}
+
+/* ---------- arbre de décision ---------- */
+.arbre{background:#fff;border:1px solid var(--gris-l);border-radius:var(--r);padding:1.2rem;margin-top:.6rem}
+.fil{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem;min-height:1.6rem}
+.fil .miette{background:var(--bleu-pale);color:var(--bleu);font-size:.8rem;font-weight:700;padding:.2rem .6rem;border-radius:99px;cursor:pointer;border:1px solid transparent}
+.fil .miette:hover{border-color:var(--bleu)}
+.fil .miette::after{content:" ✕";font-weight:400;opacity:.6}
+.question{font-size:1.05rem;font-weight:800;margin:.2rem 0 .9rem}
+.reponses{display:grid;gap:.7rem;grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+.rep{background:var(--bleu-tres-pale);border:1.5px solid var(--gris-l);border-radius:var(--r);padding:.85rem .95rem;cursor:pointer;text-align:left;font:inherit;transition:border-color .15s, background .15s}
+.rep:hover,.rep:focus-visible{border-color:var(--bleu);background:var(--bleu-pale)}
+.rep b{display:block;color:var(--bleu);margin-bottom:.25rem}
+.rep span{font-size:.86rem;color:var(--gris)}
+.resultat{border:2px solid var(--bleu);border-radius:var(--r);padding:1rem 1.1rem;background:var(--bleu-tres-pale)}
+.resultat h3{margin:.1rem 0 .6rem;font-size:1.02rem;color:var(--bleu)}
+.resultat ul{margin:.4rem 0;padding-left:1.2rem}
+.resultat li{margin:.3rem 0}
+.btn{appearance:none;font:inherit;font-weight:700;border-radius:var(--r);padding:.55rem 1rem;cursor:pointer;border:1.5px solid var(--bleu);background:var(--bleu);color:#fff}
+.btn:hover{background:var(--bleu-h);border-color:var(--bleu-h)}
+.btn.sec{background:#fff;color:var(--bleu)}
+.btn.sec:hover{background:var(--bleu-tres-pale)}
+.btn.mini{padding:.3rem .7rem;font-size:.85rem}
+.btn.danger{border-color:var(--rouge);background:#fff;color:var(--rouge)}
+.btn.danger:hover{background:#FFF4F4}
+
+/* ---------- fiches / cartes ---------- */
+.cartes{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));margin-top:.6rem}
+.carte{background:#fff;border:1px solid var(--gris-l);border-radius:var(--r);padding:.9rem 1rem;cursor:pointer;text-align:left;font:inherit;transition:box-shadow .15s,border-color .15s;position:relative}
+.carte:hover{border-color:var(--bleu);box-shadow:0 2px 10px rgba(0,0,145,.10)}
+.carte h3{margin:0 0 .35rem;font-size:.98rem;color:var(--bleu)}
+.carte p{margin:0;font-size:.86rem;color:var(--gris)}
+.carte::after{content:"consulter →";position:absolute;right:.9rem;bottom:.6rem;font-size:.75rem;font-weight:700;color:var(--bleu);opacity:0;transition:opacity .15s}
+.carte:hover::after{opacity:1}
+.puces{display:flex;flex-wrap:wrap;gap:.45rem;margin:.6rem 0}
+.puce{font:inherit;font-size:.83rem;font-weight:700;border-radius:99px;padding:.3rem .8rem;border:1.5px solid;cursor:pointer;background:#fff}
+.puce.s{color:var(--sante);border-color:var(--sante)} .puce.s:hover{background:var(--sante-bg)}
+.puce.f{color:var(--fam);border-color:var(--fam)} .puce.f:hover{background:var(--fam-bg)}
+.puce.n{color:var(--none);border-color:var(--none)} .puce.n:hover{background:var(--none-bg)}
+
+/* ---------- tableau synthèse ---------- */
+table{border-collapse:collapse;width:100%;background:#fff;font-size:.9rem}
+th,td{border:1px solid var(--gris-l);padding:.55rem .7rem;text-align:left;vertical-align:top}
+th{background:var(--bleu-pale);color:var(--bleu)}
+caption{caption-side:top;text-align:left;font-weight:800;padding:.3rem 0 .5rem}
+
+/* ---------- modale ---------- */
+dialog{border:none;border-radius:var(--r);max-width:640px;width:min(92vw,640px);padding:0;box-shadow:0 12px 40px rgba(0,0,0,.28)}
+dialog::backdrop{background:rgba(22,22,22,.55)}
+.mod-tete{display:flex;justify-content:space-between;align-items:center;background:var(--bleu);color:#fff;padding:.7rem 1rem;border-radius:var(--r) var(--r) 0 0}
+.mod-tete h3{margin:0;font-size:1rem}
+.mod-tete button{appearance:none;border:none;background:none;color:#fff;font-size:1.3rem;cursor:pointer;line-height:1;padding:.2rem .4rem}
+.mod-corps{padding:1rem 1.2rem;max-height:70vh;overflow:auto;font-size:.93rem}
+.mod-corps ul{padding-left:1.2rem}.mod-corps li{margin:.3rem 0}
+
+/* ---------- calculateur ---------- */
+.panneau{background:#fff;border:1px solid var(--gris-l);border-radius:var(--r);padding:1.1rem 1.2rem;margin-top:.6rem}
+fieldset{border:1px solid var(--gris-l);border-radius:var(--r);margin:0 0 1rem;padding: .8rem 1rem}
+legend{font-weight:800;color:var(--bleu);padding:0 .4rem;font-size:.95rem}
+label{display:block;font-size:.85rem;font-weight:700;margin-bottom:.2rem}
+input,select{font:inherit;padding:.45rem .55rem;border:1.5px solid var(--gris-l);border-radius:4px;background:#fff;width:100%}
+input:focus,select:focus,.rep:focus-visible,.btn:focus-visible,.carte:focus-visible,.puce:focus-visible,nav button:focus-visible{outline:2px solid var(--bleu-h);outline-offset:2px}
+.grille{display:grid;gap:.8rem;grid-template-columns:repeat(auto-fit,minmax(180px,1fr))}
+.ligne-p{display:grid;grid-template-columns:minmax(210px,1.5fr) 1fr 1fr 88px 40px;gap:.5rem;align-items:end;margin-bottom:.5rem}
+.ligne-pose{display:grid;grid-template-columns:110px 130px 40px;gap:.5rem;align-items:end;margin-bottom:.5rem}
+.suppr{appearance:none;border:1.5px solid var(--gris-l);background:#fff;color:var(--rouge);border-radius:4px;cursor:pointer;height:38px;font-size:1rem}
+.suppr:hover{border-color:var(--rouge);background:#FFF4F4}
+.presets{display:flex;flex-wrap:wrap;gap:.5rem;margin:.4rem 0 1rem}
+.aide{font-size:.8rem;color:var(--gris);font-weight:400}
+
+/* ---------- résultats ---------- */
+.annee{background:#fff;border:1px solid var(--gris-l);border-radius:var(--r);margin:1rem 0;overflow:hidden}
+.annee>h3{margin:0;background:var(--bleu);color:#fff;padding:.55rem 1rem;font-size:1rem}
+.annee .corps{padding:1rem 1.1rem}
+.frise{position:relative;height:46px;background:var(--fond);border-radius:4px;margin:.4rem 0 1rem;border:1px solid var(--gris-l)}
+.seg{position:absolute;top:6px;bottom:6px;border-radius:3px;font-size:.68rem;color:#fff;overflow:hidden;white-space:nowrap;display:flex;align-items:center;justify-content:center;font-weight:700;min-width:2px}
+.seg.ACT{background:var(--act)} .seg.SANTE{background:var(--sante)} .seg.FAM{background:var(--fam)} .seg.NONE{background:var(--none)}
+.legende{display:flex;gap:1rem;flex-wrap:wrap;font-size:.78rem;margin-bottom:.6rem}
+.legende span::before{content:"";display:inline-block;width:11px;height:11px;border-radius:2px;margin-right:.3rem;vertical-align:-1px}
+.legende .lACT::before{background:var(--act)} .legende .lSANTE::before{background:var(--sante)}
+.legende .lFAM::before{background:var(--fam)} .legende .lNONE::before{background:var(--none)}
+.bloc-calc{border:1px solid var(--gris-l);border-left-width:4px;border-radius:4px;padding:.7rem .9rem;margin:.6rem 0;font-size:.9rem}
+.bloc-calc.SANTE{border-left-color:var(--sante);background:linear-gradient(0deg,#fff,#fff),var(--sante-bg)}
+.bloc-calc.FAM{border-left-color:var(--fam)}
+.bloc-calc.ACT{border-left-color:var(--act)}
+.bloc-calc.ECRET{border-left-color:var(--rouge);background:#FFF9F9}
+.bloc-calc h4{margin:0 0 .35rem;font-size:.9rem}
+.formule{font-family:Consolas,ui-monospace,monospace;font-size:.83rem;background:var(--fond);border-radius:3px;padding:.35rem .5rem;margin:.3rem 0;overflow-x:auto}
+.badge{display:inline-block;font-size:.72rem;font-weight:800;border-radius:99px;padding:.12rem .55rem;margin-left:.4rem;vertical-align:1px}
+.badge.encours{background:var(--act-bg);color:var(--act)}
+.badge.expire{background:#FFE9E9;color:var(--rouge)}
+.badge.perdu{background:#EEE;color:#555}
+.badge.option{background:#FEF3D8;color:#8a5a00}
+.recap{width:100%;margin-top:.6rem}
+.recap td:nth-child(2),.recap td:nth-child(3),.recap th:nth-child(2),.recap th:nth-child(3){white-space:nowrap}
+.total-bar{background:var(--bleu-pale);border:1.5px solid var(--bleu);border-radius:var(--r);padding:.8rem 1rem;margin-top:1rem;font-size:1rem}
+.err{color:var(--rouge);font-weight:700;margin:.6rem 0}
+
+@media (max-width:760px){
+  .ligne-p{grid-template-columns:1fr 1fr;} .ligne-p>div:first-child{grid-column:1/-1}
+}
+@media print{
+  header nav,.presets,.btn,#form-calc,.note.no-print{display:none!important}
+  body{background:#fff} .annee{break-inside:avoid}
+  main{max-width:none;padding:0}
+  .annee{border-color:#000}
+  .annee>h3{background:#fff!important;color:#000!important;border-bottom:2.5px solid #000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .seg,.badge,th{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="marque">
+      <span class="tricolore" aria-hidden="true"></span>
+      <div>
+        <h1>Report de congés non pris du fait de la maladie ou des responsabilités parentales et familiales</h1>
+        <p class="sous">Régime applicable à compter du 1<sup>er</sup> juillet 2026 — décret n° 2025‑564 du 21 juin 2025 · usage interne RH</p>
+      </div>
+    </div>
+  </div>
+  <nav role="tablist" aria-label="Fonctionnalités">
+    <button role="tab" id="tab1" aria-selected="true" onclick="onglet(1)">① Comprendre la procédure</button>
+    <button role="tab" id="tab2" aria-selected="false" onclick="onglet(2)">② Calculateur de reports (RH)</button>
+  </nav>
+</header>
+
+<main>
+
+<!-- ================= ONGLET 1 : PROCÉDURE ================= -->
+<section class="onglet actif" id="onglet1" role="tabpanel" aria-labelledby="tab1">
+
+  <p class="refs"><b>Références :</b> Code général de la fonction publique · décret n° 85‑1250 du 26/11/1985 (art. 5‑1 et 5‑2) · décret n° 88‑145 du 15/02/1988 (art. 5) · décret n° 2025‑564 du 21/06/2025 (art. 4, 5, 9 et 11, JO du 22/06/2025).</p>
+
+  <h2>Parcours guidé : quel report pour quelle situation ?</h2>
+  <p>Répondez aux questions ci‑dessous pour identifier le régime de report applicable. Chaque étape peut être annulée en cliquant sur le fil d'Ariane. Les termes soulignés en couleur ouvrent une fiche explicative.</p>
+
+  <div class="arbre" id="arbre">
+    <div class="fil" id="fil"></div>
+    <div id="noeud"></div>
+  </div>
+
+  <h2>Les congés concernés (cliquez pour la définition)</h2>
+  <div class="puces">
+    <button class="puce s" onclick="ouvrirFiche('cmo')">CMO</button>
+    <button class="puce s" onclick="ouvrirFiche('clm')">CLM / CLD</button>
+    <button class="puce s" onclick="ouvrirFiche('cgm')">Congé de grave maladie</button>
+    <button class="puce s" onclick="ouvrirFiche('citis')">CITIS</button>
+    <button class="puce f" onclick="ouvrirFiche('mater')">Maternité &amp; couches pathologiques</button>
+    <button class="puce f" onclick="ouvrirFiche('pater')">Paternité / naissance / adoption</button>
+    <button class="puce f" onclick="ouvrirFiche('aidant')">Présence parentale · solidarité familiale · proche aidant</button>
+    <button class="puce n" onclick="ouvrirFiche('parental')">Congé parental</button>
+    <button class="puce n" onclick="ouvrirFiche('dof')">Disponibilité d'office (DOF)</button>
+  </div>
+
+  <h2>Les règles clés en fiches</h2>
+  <div class="cartes">
+    <button class="carte" onclick="ouvrirFiche('duree')"><h3>Période de report : 15 mois</h3><p>Durée unique du droit au report, quelle que soit la cause de l'absence.</p></button>
+    <button class="carte" onclick="ouvrirFiche('depart')"><h3>Point de départ du report</h3><p>Reprise des fonctions ou fin de l'année civile de référence : la distinction essentielle.</p></button>
+    <button class="carte" onclick="ouvrirFiche('limite')"><h3>Limites : 20 jours / 25 jours</h3><p>Plafond des 4 premières semaines pour la maladie, proratisation, écrêtement.</p></button>
+    <button class="carte" onclick="ouvrirFiche('info')"><h3>Information obligatoire de l'agent</h3><p>La date d'information conditionne le point de départ des 15 mois.</p></button>
+    <button class="carte" onclick="ouvrirFiche('cea')"><h3>Arbitrages internes (CeA)</h3><p>Pas de prolongation exceptionnelle ; choix d'option entre report et période au 30/04 N+1.</p></button>
+    <button class="carte" onclick="ouvrirFiche('cet')"><h3>Report et alimentation du CET</h3><p>Condition des 20 jours posés dans l'année ; campagne 2026‑2027.</p></button>
+    <button class="carte" onclick="ouvrirFiche('regul')"><h3>Régularisation des trop‑posés</h3><p>Quand l'agent a posé plus de congés qu'il n'en a acquis avant son absence.</p></button>
+    <button class="carte" onclick="ouvrirFiche('caspar')"><h3>Appréciation au cas par cas</h3><p>Aucune durée minimale d'absence fixée par le décret : examen de chaque situation.</p></button>
+    <button class="carte" onclick="ouvrirFiche('methode')"><h3>Méthode de calcul</h3><p>Produit en croix, convention 30 jours/mois, arrondi au 0,5 supérieur.</p></button>
+    <button class="carte" onclick="ouvrirFiche('dossier')"><h3>Classement au dossier</h3><p>Calcul RCR et retour du choix de l'agent versés au dossier individuel.</p></button>
+  </div>
+
+  <h2>Tableau de synthèse</h2>
+  <table>
+    <caption>Droit au report des congés non pris du fait de la maladie ou d'un congé lié aux responsabilités parentales ou familiales</caption>
+    <tr><th style="width:24%"></th><th>Congés acquis <b>avant</b> l'absence</th><th>Congés acquis <b>pendant</b> l'absence</th></tr>
+    <tr><td><b>Durée du report</b></td><td colspan="2" style="text-align:center"><b>15 mois</b></td></tr>
+    <tr><td><b>Point de départ</b></td>
+        <td>Reprise des fonctions</td>
+        <td>Reprise des fonctions <i>(si reprise la même année civile que l'acquisition)</i><br>OU fin de l'année civile de référence (31/12 de l'année au titre de laquelle le congé est dû → report du 01/01 N+1)</td></tr>
+    <tr><td><b>Limite au report</b></td>
+        <td colspan="2">Jusqu'à <b>20 jours</b> (agent à temps plein, proratisés selon la quotité) pour les congés non utilisés au titre de la <b>maladie</b> ·
+        jusqu'à <b>25 jours</b> pour les congés non utilisés au titre des <b>responsabilités parentales ou familiales</b> (limite non opposable en pratique)</td></tr>
+  </table>
+  <div class="note">La limite de 20 jours s'applique <b>au moment de la détermination des droits à report</b> : elle n'impacte pas l'acquisition pendant les périodes concernées. Tant que la limite n'est pas atteinte, le droit généré est pris en compte <b>sans écrêtement ni proratisation intermédiaire</b>.</div>
+</section>
+
+<!-- ================= ONGLET 2 : CALCULATEUR ================= -->
+<section class="onglet" id="onglet2" role="tabpanel" aria-labelledby="tab2">
+
+  <h2>Calculateur de droits à report — usage RH</h2>
+  <p>Saisissez la chronologie de l'agent (périodes d'activité et d'absence, avec leur quotité), la date de reprise et les congés déjà posés. L'outil découpe les périodes par année civile, applique le produit en croix (convention 30 jours/mois, arrondi au 0,5 supérieur), le plafonnement de 20 jours proratisé et détermine les fenêtres de report avec leurs échéances.</p>
+
+  <div class="presets">
+    <span style="font-weight:700;font-size:.85rem;align-self:center">Charger un exemple :</span>
+    <button class="btn sec mini" onclick="preset('p1')">Procédure — ex. 1 (CMO + maternité)</button>
+    <button class="btn sec mini" onclick="preset('p2')">Procédure — ex. 2 (CLM 3 ans + DOF)</button>
+    <button class="btn sec mini" onclick="preset('p3')">Procédure — ex. 3 (TP 80 %)</button>
+    <button class="btn sec mini" onclick="preset('marc')">Dossier MARC Céline (Excel)</button>
+    <button class="btn sec mini" onclick="preset('ex2')">Exercice n° 2 (TP 80 %, CMO + maternité)</button>
+  </div>
+
+  <form id="form-calc" class="panneau" onsubmit="event.preventDefault();calculer()">
+    <fieldset>
+      <legend>Agent</legend>
+      <div class="grille">
+        <div><label for="agent">Identification (facultatif)</label><input id="agent" placeholder="Nom, matricule…"></div>
+        <div><label for="reprise">Date de reprise (effective ou prévue)</label><input id="reprise" type="date" required></div>
+        <div><label for="infodate">Date d'information de l'agent <span class="aide">(facultatif)</span></label><input id="infodate" type="date"></div>
+        <div><label for="quotcap">Quotité pour le plafond « maladie » (%) <span class="aide">— laisser vide : déterminée automatiquement, année par année, à partir de la quotité prédominante des périodes saisies (plafond = 20 j × quotité)</span></label><input id="quotcap" type="number" min="10" max="100" step="5" placeholder="automatique"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Chronologie des périodes</legend>
+      <p class="aide" style="margin-top:0">Ordre chronologique conseillé. Les périodes « à cheval » sur plusieurs années sont découpées automatiquement. Une absence pour raison de santé inférieure à 30 jours consécutifs peut, après appréciation au cas par cas, être saisie comme « Activité » (elle n'empêche pas la prise des congés).</p>
+      <div id="periodes"></div>
+      <button type="button" class="btn sec mini" onclick="ajouterPeriode()">+ Ajouter une période</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Congés annuels déjà posés (par année d'acquisition)</legend>
+      <div id="poses"></div>
+      <button type="button" class="btn sec mini" onclick="ajouterPose()">+ Ajouter une année</button>
+    </fieldset>
+
+    <fieldset>
+      <legend>Méthode de calcul</legend>
+      <label style="font-weight:400"><input type="radio" name="methode" value="exact" checked style="width:auto"> Fraction exacte : jours × (25 × quotité) / 360 <span class="aide">(méthode du tableau Excel de référence)</span></label>
+      <label style="font-weight:400"><input type="radio" name="methode" value="arrondi" style="width:auto"> Taux mensuel arrondi : jours × taux/30 avec taux ∈ {2,08 ; 1,87 ; 1,67 ; 1,04…} <span class="aide">(méthode littérale de la procédure ; écarts possibles de 0,5 j)</span></label>
+    </fieldset>
+
+    <button class="btn" type="submit">Calculer les droits à report</button>
+    <button class="btn sec" type="button" onclick="window.print()">Imprimer la fiche</button>
+    <button class="btn danger" type="button" onclick="toutEffacer()">Tout effacer</button>
+    <div id="erreurs" class="err" role="alert"></div>
+  </form>
+
+  <div id="resultats"></div>
+</section>
+</main>
+
+<!-- ================= MODALE ================= -->
+<dialog id="modale">
+  <div class="mod-tete"><h3 id="mod-titre"></h3><button onclick="document.getElementById('modale').close()" aria-label="Fermer">✕</button></div>
+  <div class="mod-corps" id="mod-corps"></div>
+</dialog>
+
+<script>
+"use strict";
+/* ============================================================
+   0. Navigation onglets
+============================================================ */
+function onglet(n){
+  for(const i of [1,2]){
+    document.getElementById('onglet'+i).classList.toggle('actif', i===n);
+    document.getElementById('tab'+i).setAttribute('aria-selected', i===n);
+  }
+}
+
+/* ============================================================
+   1. Fiches (modales)
+============================================================ */
+const FICHES = {
+cmo:{t:"Congé de maladie ordinaire (CMO)",c:`<p>Congé pour raison de santé de droit commun. Il ouvre droit au report des congés annuels non pris, dans la limite des <b>4 premières semaines</b> de congé annuel par période de référence (20 jours à temps plein, proratisés).</p><p><b>Point de vigilance CeA :</b> une absence inférieure à 30 jours consécutifs peut, après appréciation au cas par cas, être regardée comme n'ayant pas empêché la prise des congés.</p>`},
+clm:{t:"Congé de longue maladie (CLM) / de longue durée (CLD)",c:`<p>Congés pour raison de santé de longue durée. Mêmes règles de report que le CMO : 15 mois, plafond de 20 jours proratisé.</p><p>Pour les absences couvrant <b>plusieurs années civiles</b>, la situation est examinée à chaque 31/12 : les congés de l'année entièrement non travaillée sont reportés (20 jours maximum à temps plein) à compter du 01/01 N+1, pour 15 mois (échéance 31/03 N+2). Passé ce délai sans reprise, ils sont perdus.</p>`},
+cgm:{t:"Congé de grave maladie",c:`<p>Équivalent du CLM pour les agents contractuels de droit public (décret n° 88‑145 du 15/02/1988, art. 5). Le régime de report « raison de santé » s'applique dans les mêmes conditions qu'aux fonctionnaires.</p>`},
+citis:{t:"CITIS — congé pour invalidité temporaire imputable au service",c:`<p>Accordé en cas d'accident de service, d'accident de trajet ou de maladie professionnelle. Il est assimilé à un <b>congé pour raison de santé</b> : report de 15 mois, plafond de 20 jours proratisé.</p>`},
+mater:{t:"Congé de maternité et couches pathologiques",c:`<p>Congé lié aux responsabilités parentales ou familiales. Les couches pathologiques constituent une <b>période supplémentaire de congé de maternité</b> et relèvent du même régime.</p><ul><li>Report de 15 mois, <b>sans plafond opposable</b> (jusqu'à 25 jours, soit l'intégralité du droit annuel à temps plein).</li><li>Pendant le congé de maternité, le temps partiel est suspendu : l'acquisition se fait <b>à temps plein</b> (2,08 CA/mois).</li></ul>`},
+pater:{t:"Paternité, naissance, adoption",c:`<p>Congé de naissance, congé pour l'arrivée d'un enfant en vue de son adoption, congé d'adoption, congé de paternité et d'accueil de l'enfant, congé supplémentaire de naissance : tous relèvent des <b>congés liés aux responsabilités parentales ou familiales</b>. Report de 15 mois, sans limite opposable (25 jours).</p>`},
+aidant:{t:"Présence parentale · solidarité familiale · proche aidant",c:`<p>Congé de présence parentale, congé de solidarité familiale et congé de proche aidant : congés liés aux responsabilités parentales ou familiales. Report de 15 mois, limite de 25 jours (non opposable en pratique).</p>`},
+parental:{t:"Congé parental",c:`<p>Les fonctionnaires en congé parental <b>ne génèrent pas de congés annuels</b> pendant ce congé, mais bénéficient du <b>maintien des droits acquis avant</b> le congé parental (art. 36 de la loi n° 2024‑364 du 22/04/2024 ; art. L. 515‑8 du CGFP).</p><p>Dans le calculateur, saisir cette période comme « Sans acquisition ».</p>`},
+dof:{t:"Disponibilité d'office (DOF)",c:`<p>La disponibilité d'office pour raison de santé <b>ne génère aucun droit à congé annuel</b>. Elle n'ouvre pas non plus, par elle‑même, de droit au report. Dans le calculateur, saisir cette période comme « Sans acquisition ».</p>`},
+duree:{t:"Période de report : 15 mois",c:`<p>Lorsque l'agent public est dans l'impossibilité, du fait d'un congé pour raison de santé ou d'un congé lié aux responsabilités parentales ou familiales, de prendre son congé annuel au cours de l'année au titre de laquelle il lui est dû, il bénéficie d'une période de report de <b>15 mois</b>.</p><p><b>Prolongation exceptionnelle :</b> la période de report peut en principe être prolongée sur autorisation exceptionnelle de l'autorité territoriale (décision d'opportunité). <b>Arbitrage DRH : cette possibilité n'est pas mobilisée au sein de la CeA.</b></p>`},
+depart:{t:"Point de départ du report",c:`<p>Le report débute, selon le cas, à la <b>reprise des fonctions</b> ou <b>au plus tard à la fin de l'année au titre de laquelle le congé annuel est dû</b> :</p><ul><li><b>Congés acquis avant l'absence :</b> 15 mois à compter de la reprise des fonctions.</li><li><b>Congés acquis pendant l'absence :</b><ul><li>15 mois à compter de la <b>reprise</b> lorsqu'elle a lieu la même année civile que l'acquisition ;</li><li>15 mois à compter du <b>31/12 de l'année d'acquisition</b> (le report court du 01/01 N+1 au 31/03 N+2) lorsque l'absence se prolonge au‑delà de l'année d'acquisition.</li></ul></li></ul><p>Un agent absent pour maladie sur une année civile entière bénéficie ainsi d'un report (limité à 20 jours à temps plein) à compter du 01/01 N+1.</p>`},
+limite:{t:"Limites au report et écrêtement",c:`<ul><li><b>Maladie :</b> report limité aux droits non utilisés relevant des <b>4 premières semaines</b> de congé annuel par période de référence, soit <b>20 jours à temps plein</b>, proratisés selon la quotité (16 jours à 80 %, 18 jours à 90 %…).</li><li><b>Responsabilités parentales ou familiales :</b> pas de limite opposable (25 jours à taux plein).</li></ul><p>La limite s'applique <b>au moment de la détermination des droits à report</b>, sans écrêter l'acquisition période par période. Méthode obligatoire :</p><ol><li>calculer, année par année et période par période, les droits générés ;</li><li>identifier le point de départ du report de chaque période ;</li><li>déterminer le droit au report en déduisant les CA déjà posés et en appliquant le plafond (écrêtement du surplus sur le compteur des congés acquis pendant la maladie).</li></ol>`},
+info:{t:"Information obligatoire de l'agent",c:`<p>Dans l'attente d'une modification réglementaire, une <b>information systématique</b> des agents concernés est prévue, a minima au moment de la reprise, ainsi qu'à chaque début d'année civile lorsque l'absence couvre plusieurs années (ou se poursuit sur l'année N+1) et que l'agent n'a pas pu prendre tous ses congés au titre de l'année N‑1.</p><p><b>Incidence sur le point de départ des 15 mois :</b></p><ul><li>information donnée <b>dans le mois</b> qui suit la reprise → le report court <b>à compter de la reprise</b> ;</li><li>information donnée <b>au‑delà d'un mois</b> après la reprise → le report court à compter du <b>1<sup>er</sup> jour du mois suivant l'information</b>.</li></ul>`},
+cea:{t:"Arbitrages internes (CeA)",c:`<ul><li><b>Pas de prolongation exceptionnelle</b> de la période de report (arbitrage DRH).</li><li>Les agents bénéficient d'une période supplémentaire de 4 mois, jusqu'au <b>30/04 N+1</b>, pour poser leurs congés de l'année N <i>(arbitrage ST en attente)</i>.</li><li><b>Choix d'option laissé à l'agent</b>, après information des deux possibilités :<ul><li>bénéfice du <b>report</b> (droit limité à 20 jours maximum au titre de la maladie), ou</li><li>bénéfice des <b>4 mois supplémentaires</b> de la période de référence (30/04 N+1), avec perte des jours non pris dans ce délai, quelle qu'en soit la raison.</li></ul></li><li>Le calcul RCR et le retour du choix de l'agent sont classés au <b>dossier individuel</b>.</li></ul>`},
+cet:{t:"Droit au report et alimentation du CET",c:`<p>L'alimentation du CET n'est possible que dans les conditions du règlement adopté par la CeA. Pour un agent disposant d'un reliquat de congés non pris au 31/12 du fait de la maladie :</p><ul><li>agent ayant pris <b>moins de 20 jours</b> (temps complet) de congés et de reports dans l'année → <b>pas d'alimentation du CET</b> par ces reliquats ; il bénéficie du report dans les conditions de la procédure ;</li><li>agent ayant pris <b>au moins 20 jours</b> → choix entre l'inscription au CET des jours restants dus (dans la limite du plafond de 60 jours) et le report.</li></ul><p><b>À compter de la campagne CET 2026‑2027 :</b> l'alimentation du CET n'est en aucun cas autorisée lorsque l'agent n'a pas posé au moins 20 jours de congés annuels dans l'année ; l'année d'acquisition des CA posés est en revanche indifférente.</p>`},
+regul:{t:"Régularisation des trop‑posés",c:`<p>Si un agent a posé <b>plus de congés annuels qu'il n'en a acquis</b> avant son congé pour raison de santé ou lié aux responsabilités parentales ou familiales, sa situation est régularisée en déduisant le nombre de jours « dus » de son droit au report.</p><p>Le calculateur signale automatiquement cette situation (solde « avant » négatif) et impute la régularisation sur les reports de l'année concernée.</p>`},
+caspar:{t:"Appréciation au cas par cas",c:`<p>Le décret du 21 juin 2025 <b>ne fixe aucune période minimale d'absence</b> au‑delà de laquelle le report serait de droit. Il est donc nécessaire d'apprécier chaque situation et de déterminer, pour chaque agent absent, si son ou ses absences l'ont empêché de prendre ses congés :</p><ul><li>à l'aide d'une requête de suivi pour les agents ayant repris dans l'année ;</li><li>pour les agents absents sur plusieurs années (ou dont l'absence est « à cheval »), à chaque 31/12, en fonction le cas échéant de la date prévisionnelle de reprise connue.</li></ul><p>Exemple d'application : un agent ayant repris tôt dans l'année N+1 n'est pas regardé comme empêché de poser ses CA N+1 avant le 30/04 N+2 ; son choix est alors sollicité (report du fait de la maladie ou période au 30/04).</p>`},
+methode:{t:"Méthode de calcul des droits",c:`<p>Le droit généré par une période est obtenu par <b>produit en croix</b> sur la base de 2,08 CA/mois à temps plein (25 jours / 12 mois), proratisé par la quotité :</p><p class="formule">30 jours → 2,08 CA/mois × quotité &nbsp;⇒&nbsp; N jours → N × (25 × quotité) / 360 CA</p><ul><li>Le décompte des jours suit la <b>convention 30 jours/mois</b> (un mois complet = 30 jours, le 31 est assimilé au 30) : c'est la méthode du tableau Excel de gestion.</li><li>Le résultat est <b>arrondi au 0,5 supérieur</b> pour obtenir un jour ou une demi‑journée entière.</li><li>Pendant un congé de <b>maternité</b>, le temps partiel est suspendu : acquisition à temps plein.</li><li>Le nombre de jours acquis avant ou pendant l'absence n'est <b>pas proratisé sur la base des 20 jours</b> : tant que la limite n'est pas atteinte, le droit généré est retenu sans écrêtement.</li></ul>`},
+dossier:{t:"Classement au dossier individuel",c:`<p>Les éléments suivants sont classés au dossier individuel de l'agent :</p><ul><li>le <b>calcul RCR</b> (reliquats de congés reportés) produit par le service — la fiche imprimable du calculateur peut en tenir lieu de support ;</li><li>le <b>retour du choix de l'agent</b> entre les options offertes (report / période au 30/04 N+1, ou report / CET le cas échéant).</li></ul>`}
+};
+function ouvrirFiche(id){
+  const f = FICHES[id]; if(!f) return;
+  document.getElementById('mod-titre').textContent = f.t;
+  document.getElementById('mod-corps').innerHTML = f.c;
+  document.getElementById('modale').showModal();
+}
+
+/* ============================================================
+   2. Arbre de décision interactif
+============================================================ */
+const lien = (id,txt,cls)=>`<a href="#" class="lienf" style="font-weight:700;color:${cls==='s'?'var(--sante)':cls==='f'?'var(--fam)':'var(--bleu)'}" onclick="event.preventDefault();ouvrirFiche('${id}')">${txt}</a>`;
+
+const ARBRE = {
+ racine:{
+  q:"Quelle situation a empêché (ou risque d'empêcher) l'agent de prendre ses congés annuels ?",
+  reps:[
+   {t:"Congé pour raison de santé", d:"CMO, CLM, CLD, grave maladie, CITIS", vers:"sante", m:"Raison de santé"},
+   {t:"Congé lié aux responsabilités parentales ou familiales", d:"maternité, paternité, adoption, présence parentale, solidarité familiale, proche aidant…", vers:"fam", m:"Parental / familial"},
+   {t:"Congé parental", d:"pas d'acquisition, maintien des droits acquis avant", vers:"resParental", m:"Congé parental"},
+   {t:"Autre position (DOF…)", d:"disponibilité d'office pour raison de santé…", vers:"resDof", m:"Autre position"}
+  ]},
+ sante:{
+  q:"Les congés annuels concernés ont‑ils été acquis avant ou pendant le congé pour raison de santé ?",
+  reps:[
+   {t:"Acquis AVANT l'absence", d:"périodes d'activité précédant l'arrêt", vers:"resAvantS", m:"Acquis avant"},
+   {t:"Acquis PENDANT l'absence", d:"droits générés au cours de l'arrêt", vers:"pendantS", m:"Acquis pendant"}
+  ]},
+ fam:{
+  q:"Les congés annuels concernés ont‑ils été acquis avant ou pendant le congé lié aux responsabilités parentales ou familiales ?",
+  reps:[
+   {t:"Acquis AVANT l'absence", d:"périodes d'activité précédant le congé", vers:"resAvantF", m:"Acquis avant"},
+   {t:"Acquis PENDANT l'absence", d:"droits générés au cours du congé", vers:"pendantF", m:"Acquis pendant"}
+  ]},
+ pendantS:{
+  q:"L'agent a‑t‑il repris ses fonctions au cours de la même année civile que celle d'acquisition de ces congés ?",
+  reps:[
+   {t:"Oui — reprise la même année", d:"l'arrêt ne dépasse pas le 31/12 de l'année d'acquisition", vers:"resPendantS1", m:"Reprise même année"},
+   {t:"Non — absence au‑delà du 31/12", d:"absence « à cheval » ou sur année(s) entière(s)", vers:"resPendantS2", m:"Reprise ultérieure"}
+  ]},
+ pendantF:{
+  q:"L'agent a‑t‑il repris ses fonctions au cours de la même année civile que celle d'acquisition de ces congés ?",
+  reps:[
+   {t:"Oui — reprise la même année", d:"", vers:"resPendantF1", m:"Reprise même année"},
+   {t:"Non — absence au‑delà du 31/12", d:"", vers:"resPendantF2", m:"Reprise ultérieure"}
+  ]}
+};
+const RES = {
+ resAvantS:`<h3>Congés acquis avant un congé pour raison de santé</h3>
+  <ul><li><b>Report de 15 mois à compter de la reprise des fonctions.</b></li>
+  <li>Déduire les congés déjà posés par l'agent sur la période de référence ; si le solde est négatif, ${lien('regul','régularisation','b')}.</li>
+  <li>Report limité aux droits non utilisés relevant des 4 premières semaines : ${lien('limite','20 jours à temps plein, proratisés','s')} (plafond apprécié en cumul avec les congés acquis pendant la maladie).</li>
+  <li>N'oubliez pas l'${lien('info','information de l\'agent','b')} : donnée plus d'un mois après la reprise, elle décale le point de départ au 1<sup>er</sup> du mois suivant.</li></ul>`,
+ resPendantS1:`<h3>Congés acquis pendant la maladie — reprise la même année civile</h3>
+  <ul><li><b>Report de 15 mois à compter de la reprise des fonctions</b> (l'arrêt ne s'est pas prolongé au‑delà du 31/12 de l'année d'acquisition).</li>
+  <li>Plafond de ${lien('limite','20 jours proratisés','s')} apprécié en cumul (acquis avant + pendant la maladie) ; écrêtement du surplus sur le compteur « pendant ».</li>
+  <li><b>Option CeA :</b> si l'agent reprend suffisamment tôt, il n'est pas regardé comme empêché de poser ses congés avant le 30/04 N+1 : son ${lien('cea','choix est sollicité','b')} (report de 15 mois ou période au 30/04 N+1).</li></ul>`,
+ resPendantS2:`<h3>Congés acquis pendant la maladie — absence au‑delà de l'année d'acquisition</h3>
+  <ul><li><b>Report de 15 mois à compter de la fin de l'année civile de référence :</b> il court du <b>01/01 N+1</b> au <b>31/03 N+2</b>.</li>
+  <li>Année entièrement non travaillée : report plafonné à <b>20 jours</b> à temps plein (proratisés) à compter du 01/01 N+1. Si l'agent ne reprend pas avant l'échéance, les jours sont <b>perdus</b>.</li>
+  <li>${lien('info','Information de l\'agent','b')} à chaque début d'année civile en cas d'absence pluriannuelle.</li></ul>`,
+ resAvantF:`<h3>Congés acquis avant un congé lié aux responsabilités parentales ou familiales</h3>
+  <ul><li><b>Report de 15 mois à compter de la reprise des fonctions.</b></li>
+  <li>Déduire les congés déjà posés ; régularisation en cas de trop‑posés.</li>
+  <li><b>Pas de limite opposable</b> : droit conservé jusqu'à 25 jours (taux plein) — la limite de 20 jours ne s'applique qu'à la maladie.</li></ul>`,
+ resPendantF1:`<h3>Congés acquis pendant le congé parental/familial — reprise la même année civile</h3>
+  <ul><li><b>Report de 15 mois à compter de la reprise des fonctions.</b></li>
+  <li><b>Pas de limite opposable</b> (jusqu'à 25 jours à taux plein).</li>
+  <li>Rappel : pendant le congé de ${lien('mater','maternité','f')}, le temps partiel est suspendu — acquisition à temps plein.</li></ul>`,
+ resPendantF2:`<h3>Congés acquis pendant le congé parental/familial — absence au‑delà de l'année d'acquisition</h3>
+  <ul><li><b>Report de 15 mois à compter du 31/12 de l'année d'acquisition</b> (du 01/01 N+1 au 31/03 N+2).</li>
+  <li><b>Pas de limite opposable</b> (jusqu'à 25 jours à taux plein).</li></ul>`,
+ resParental:`<h3>Congé parental</h3>
+  <ul><li>Le congé parental <b>ne génère pas de congés annuels</b>.</li>
+  <li>L'agent bénéficie du <b>maintien des droits acquis avant</b> le congé parental (loi n° 2024‑364 du 22/04/2024, art. 36 ; art. L. 515‑8 du CGFP) : ces droits suivent le régime « congés acquis avant l'absence ».</li></ul>`,
+ resDof:`<h3>Disponibilité d'office et autres positions</h3>
+  <ul><li>La ${lien('dof','disponibilité d\'office','n')} ne génère <b>aucun droit</b> à congé annuel et n'ouvre pas de droit au report par elle‑même.</li>
+  <li>Les droits acquis antérieurement suivent, le cas échéant, le régime du congé (santé ou familial) qui a précédé.</li></ul>`
+};
+
+let chemin = [];
+function rendreArbre(){
+  const fil = document.getElementById('fil'), noeud = document.getElementById('noeud');
+  fil.innerHTML = chemin.map((e,i)=>`<button class="miette" onclick="revenir(${i})" title="Revenir à cette étape">${e.m}</button>`).join('');
+  const pos = chemin.length ? chemin[chemin.length-1].vers : 'racine';
+  if(RES[pos]){
+    noeud.innerHTML = `<div class="resultat">${RES[pos]}
+      <button class="btn sec mini" onclick="revenir(-1)" style="margin-top:.5rem">↺ Recommencer le parcours</button></div>`;
+    return;
+  }
+  const n = ARBRE[pos];
+  noeud.innerHTML = `<p class="question">${n.q}</p><div class="reponses">`+
+    n.reps.map((r,i)=>`<button class="rep" onclick="choisir('${pos}',${i})"><b>${r.t}</b><span>${r.d}</span></button>`).join('')+`</div>`;
+}
+function choisir(pos,i){ chemin.push(ARBRE[pos].reps[i]); rendreArbre(); }
+function revenir(i){ chemin = i<0 ? [] : chemin.slice(0,i); rendreArbre(); }
+rendreArbre();
+
+/* ============================================================
+   3. Calculateur — saisie
+============================================================ */
+const TYPES = [
+ ["ACT","Activité (période travaillée)"],
+ ["SANTE","Congé pour raison de santé (CMO, CLM, CLD, grave maladie, CITIS)"],
+ ["FAM","Congé lié aux responsabilités parentales ou familiales (maternité…)"],
+ ["NONE","Sans acquisition (congé parental, disponibilité d'office…)"]
+];
+function ajouterPeriode(v){
+  v = v||{};
+  const div = document.createElement('div');
+  div.className='ligne-p';
+  div.innerHTML = `
+    <div><label>Type de période</label><select class="p-type">${TYPES.map(t=>`<option value="${t[0]}" ${v.type===t[0]?'selected':''}>${t[1]}</option>`).join('')}</select></div>
+    <div><label>Début</label><input type="date" class="p-deb" value="${v.deb||''}"></div>
+    <div><label>Fin (incluse)</label><input type="date" class="p-fin" value="${v.fin||''}"></div>
+    <div><label>Quotité %</label><input type="number" class="p-q" min="10" max="100" step="5" value="${v.q??100}"></div>
+    <button type="button" class="suppr" title="Supprimer la période" onclick="this.parentNode.remove()">✕</button>`;
+  document.getElementById('periodes').appendChild(div);
+}
+function ajouterPose(v){
+  v=v||{};
+  const div=document.createElement('div');
+  div.className='ligne-pose';
+  div.innerHTML=`
+    <div><label>Année</label><input type="number" class="ps-an" min="2015" max="2040" value="${v.an||new Date().getFullYear()}"></div>
+    <div><label>CA posés (jours)</label><input type="number" class="ps-j" min="0" step="0.5" value="${v.j??0}"></div>
+    <button type="button" class="suppr" title="Supprimer" onclick="this.parentNode.remove()">✕</button>`;
+  document.getElementById('poses').appendChild(div);
+}
+function toutEffacer(){
+  document.getElementById('periodes').innerHTML=''; document.getElementById('poses').innerHTML='';
+  document.getElementById('resultats').innerHTML=''; document.getElementById('erreurs').textContent='';
+  ['agent','reprise','infodate'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('quotcap').value='';
+  ajouterPeriode();
+}
+ajouterPeriode();
+
+/* -------- Exemples préchargés -------- */
+const PRESETS = {
+ p1:{agent:"Procédure — exemple n° 1", reprise:"2025-07-16", quot:100, poses:[{an:2024,j:2}], per:[
+   {type:"ACT",deb:"2024-01-01",fin:"2024-04-03",q:100},{type:"SANTE",deb:"2024-04-04",fin:"2024-07-05",q:100},
+   {type:"FAM",deb:"2024-07-06",fin:"2024-11-22",q:100},{type:"SANTE",deb:"2024-11-23",fin:"2025-07-15",q:100}]},
+ p2:{agent:"Procédure — exemple n° 2", reprise:"2025-09-01", quot:100, poses:[], per:[
+   {type:"SANTE",deb:"2022-06-14",fin:"2025-06-13",q:100},{type:"NONE",deb:"2025-06-14",fin:"2025-08-31",q:100}]},
+ p3:{agent:"Procédure — exemple n° 3 (TP 80 %)", reprise:"2025-02-16", quot:80, poses:[{an:2024,j:5}], per:[
+   {type:"ACT",deb:"2024-01-01",fin:"2024-03-24",q:80},{type:"SANTE",deb:"2024-03-25",fin:"2025-02-15",q:80}]},
+ marc:{agent:"MARC Céline (tableau Excel / exercice n° 1)", reprise:"2026-07-06", quot:90, poses:[{an:2025,j:1}], per:[
+   {type:"ACT",deb:"2025-01-01",fin:"2025-11-18",q:90},{type:"FAM",deb:"2025-11-19",fin:"2026-05-19",q:100},
+   {type:"SANTE",deb:"2026-05-20",fin:"2026-07-05",q:100}]},
+ ex2:{agent:"Exercice n° 2 (TP 80 %)", reprise:"2026-08-18", quot:80, poses:[{an:2026,j:0}], per:[
+   {type:"ACT",deb:"2026-01-01",fin:"2026-03-03",q:80},{type:"SANTE",deb:"2026-03-04",fin:"2026-04-27",q:80},
+   {type:"FAM",deb:"2026-04-28",fin:"2026-08-17",q:100}]}
+};
+function preset(k){
+  const p=PRESETS[k]; if(!p) return;
+  document.getElementById('periodes').innerHTML=''; document.getElementById('poses').innerHTML='';
+  document.getElementById('agent').value=p.agent; document.getElementById('reprise').value=p.reprise;
+  document.getElementById('infodate').value=''; document.getElementById('quotcap').value='';
+  p.per.forEach(x=>ajouterPeriode({type:x.type,deb:x.deb,fin:x.fin,q:x.q}));
+  p.poses.forEach(x=>ajouterPose(x));
+  onglet(2); calculer();
+}
+
+/* ============================================================
+   4. Calculateur — moteur
+============================================================ */
+const MS=86400000;
+const dISO = s => { const [a,m,j]=s.split('-').map(Number); return new Date(a,m-1,j); };
+const fmt = d => d.toLocaleDateString('fr-FR');
+const fnum = x => (Math.round(x*100)/100).toLocaleString('fr-FR');
+function jours360(d1,d2){ // bornes incluses, convention 30 j/mois
+  const a=(d2.getFullYear()-d1.getFullYear())*360+(d2.getMonth()-d1.getMonth())*30;
+  return a + Math.min(d2.getDate(),30) - Math.min(d1.getDate(),30) + 1;
+}
+const ceilDemi = x => Math.ceil((Math.round(x*10000)/10000)*2)/2;
+function tauxMensuel(q){ return Math.round(25*q/12*100)/100; } // 2,08 ; 1,87 ; 1,67 ; 1,04…
+function acquis(j,q,methode){
+  return methode==='arrondi' ? ceilDemi(j*tauxMensuel(q)/30) : ceilDemi(j*25*q/360);
+}
+function addMois(d,m){ // décale de m mois en bornant le quantième
+  const cible=new Date(d.getFullYear(), d.getMonth()+m, 1);
+  const dern=new Date(cible.getFullYear(), cible.getMonth()+1, 0).getDate();
+  return new Date(cible.getFullYear(), cible.getMonth(), Math.min(d.getDate(),dern));
+}
+function fin15mois(depart){ const e=addMois(depart,15); e.setDate(e.getDate()-1); return e; }
+
+function lirePeriodes(){
+  const out=[];
+  for(const l of document.querySelectorAll('#periodes .ligne-p')){
+    const type=l.querySelector('.p-type').value, deb=l.querySelector('.p-deb').value, fin=l.querySelector('.p-fin').value;
+    const q=parseFloat(l.querySelector('.p-q').value)/100;
+    if(!deb||!fin) continue;
+    out.push({type, deb:dISO(deb), fin:dISO(fin), q:isNaN(q)?1:q});
+  }
+  out.sort((a,b)=>a.deb-b.deb);
+  return out;
+}
+function lirePoses(){
+  const m={};
+  for(const l of document.querySelectorAll('#poses .ligne-pose')){
+    const an=parseInt(l.querySelector('.ps-an').value), j=parseFloat(l.querySelector('.ps-j').value)||0;
+    if(an) m[an]=(m[an]||0)+j;
+  }
+  return m;
+}
+
+function calculer(){
+  const err=document.getElementById('erreurs'), zone=document.getElementById('resultats');
+  err.textContent=''; zone.innerHTML='';
+  const periodes=lirePeriodes();
+  const repriseV=document.getElementById('reprise').value;
+  if(!periodes.length){ err.textContent="Saisissez au moins une période."; return; }
+  if(!repriseV){ err.textContent="Indiquez la date de reprise (effective ou prévue)."; return; }
+  const reprise=dISO(repriseV);
+  for(const p of periodes){ if(p.fin<p.deb){ err.textContent="Une période a une date de fin antérieure à sa date de début."; return; } }
+  const infoV=document.getElementById('infodate').value;
+  const infoDate=infoV?dISO(infoV):null;
+  const quotCapSaisie=parseFloat(document.getElementById('quotcap').value);
+  const quotCapManuel=isNaN(quotCapSaisie)?null:quotCapSaisie/100;
+  const methode=document.querySelector('input[name="methode"]:checked').value;
+  const poses=lirePoses();
+  const aujourdhui=new Date(); aujourdhui.setHours(0,0,0,0);
+
+  /* Point de départ « reprise » corrigé par la règle d'information */
+  let departReprise=reprise, noteInfo='';
+  if(infoDate){
+    const limite=addMois(reprise,1);
+    if(infoDate>limite){
+      departReprise=new Date(infoDate.getFullYear(), infoDate.getMonth()+1, 1);
+      noteInfo=`L'agent a été informé le ${fmt(infoDate)}, soit plus d'un mois après la reprise (${fmt(reprise)}) : le point de départ des reports « à compter de la reprise » est décalé au <b>${fmt(departReprise)}</b> (1<sup>er</sup> jour du mois suivant l'information).`;
+    } else {
+      noteInfo=`L'agent a été informé le ${fmt(infoDate)}, dans le mois suivant la reprise : le report court à compter de la reprise (${fmt(reprise)}).`;
+    }
+  }
+
+  /* Découpage des périodes par année civile */
+  const parAnnee={};
+  for(const p of periodes){
+    for(let an=p.deb.getFullYear(); an<=p.fin.getFullYear(); an++){
+      const d = an===p.deb.getFullYear()? p.deb : new Date(an,0,1);
+      const f = an===p.fin.getFullYear()? p.fin : new Date(an,11,31);
+      (parAnnee[an]=parAnnee[an]||[]).push({type:p.type, deb:d, fin:f, q:p.q});
+    }
+  }
+  const annees=Object.keys(parAnnee).map(Number).sort((a,b)=>a-b);
+  const lignesRecap=[]; let html='';
+
+  for(const an of annees){
+    const segs=parAnnee[an].sort((a,b)=>a.deb-b.deb);
+    /* calcul des acquis par segment */
+    for(const s of segs){
+      s.j=jours360(s.deb,s.fin);
+      const qEff = s.type==='NONE' ? 0 : s.q;
+      s.acquis = s.type==='NONE' ? 0 : acquis(s.j,qEff,methode);
+    }
+    const repriseCetteAnnee = reprise.getFullYear()===an;
+    const avant = segs.filter(s=>s.type==='ACT' && s.deb<reprise);
+    const apres = segs.filter(s=>s.type==='ACT' && s.deb>=reprise);
+    const sante = segs.filter(s=>s.type==='SANTE');
+    const fam   = segs.filter(s=>s.type==='FAM');
+    const none  = segs.filter(s=>s.type==='NONE');
+    const absences = segs.filter(s=>s.type==='SANTE'||s.type==='FAM');
+    if(!absences.length && !avant.length){ continue; } // rien à examiner
+    const causeAvant = absences.length ? absences[0].type : null; // nature de la 1re absence suivant la période travaillée
+
+    const acqAvant = avant.reduce((t,s)=>t+s.acquis,0);
+    const posesAn = poses[an]||0;
+    let reportAvant = acqAvant - posesAn;
+    const acqSante = sante.reduce((t,s)=>t+s.acquis,0);
+    const acqFam = fam.reduce((t,s)=>t+s.acquis,0);
+
+    /* Quotité retenue pour le plafond « maladie » : saisie manuelle, sinon quotité prédominante (en jours) de l'année */
+    let quotCap, srcCap;
+    if(quotCapManuel!==null){ quotCap=quotCapManuel; srcCap='quotité saisie manuellement'; }
+    else{
+      const cumul={};
+      for(const s of segs){ if(s.type==='NONE') continue; cumul[s.q]=(cumul[s.q]||0)+s.j; }
+      quotCap=1; let max=-1;
+      for(const q in cumul){ if(cumul[q]>max){ max=cumul[q]; quotCap=parseFloat(q); } }
+      srcCap='quotité prédominante des périodes de l\'année';
+    }
+    /* Plafonds : pool santé = acquis avant (bruts, si la 1re absence est un congé santé) + acquis pendant santé */
+    const capS = 20*quotCap, capF = 25;
+    const poolSante = (causeAvant==='SANTE'? acqAvant : 0) + acqSante;
+    const poolFam = (causeAvant==='FAM'? acqAvant : 0) + acqFam;
+    let ecret = Math.max(0, poolSante - capS);
+    /* écrêtement imputé d'abord sur les compteurs « pendant santé » (du dernier au premier), puis sur « avant » */
+    let resteEcret=ecret;
+    const santeApresEcret = sante.map(s=>({...s, retenu:s.acquis}));
+    for(let i=santeApresEcret.length-1;i>=0 && resteEcret>0;i--){
+      const r=Math.min(santeApresEcret[i].retenu, resteEcret);
+      santeApresEcret[i].retenu-=r; resteEcret-=r;
+    }
+    let ecretAvant=0;
+    if(resteEcret>0){ ecretAvant=Math.min(Math.max(reportAvant,0),resteEcret); reportAvant-=ecretAvant; resteEcret-=ecretAvant; }
+
+    /* Points de départ des reports */
+    const departPendant = repriseCetteAnnee ? departReprise : new Date(an+1,0,1);
+    const finPendant = fin15mois(departPendant);
+    const finAvant = fin15mois(departReprise);
+    const etat = fin => fin < reprise ? '<span class="badge perdu">perdus (échéance antérieure à la reprise)</span>'
+                 : fin < aujourdhui ? '<span class="badge expire">échéance dépassée</span>'
+                 : '<span class="badge encours">en cours</span>';
+
+    /* Option CeA : reprise avant le 30/04 N+1 → agent non empêché pour les CA de l'année de reprise, choix à solliciter */
+    const optionCeA = repriseCetteAnnee || (reprise.getFullYear()===an+1 && reprise <= new Date(an+1,3,30));
+
+    /* -------- rendu HTML de l'année -------- */
+    let corps='';
+    /* frise chronologique */
+    const debutAn=new Date(an,0,1), joursAn=(new Date(an,11,31)-debutAn)/MS+1;
+    corps += `<div class="legende"><span class="lACT">Activité</span><span class="lSANTE">Raison de santé</span><span class="lFAM">Parental / familial</span><span class="lNONE">Sans acquisition</span></div>
+      <div class="frise" role="img" aria-label="Chronologie de l'année ${an}">`+
+      segs.map(s=>{
+        const g=((s.deb-debutAn)/MS)/joursAn*100, w=(((s.fin-s.deb)/MS)+1)/joursAn*100;
+        return `<div class="seg ${s.type}" style="left:${g}%;width:${w}%" title="${fmt(s.deb)} → ${fmt(s.fin)}${s.q<1&&s.type!=='NONE'?' · '+Math.round(s.q*100)+'%':''}">${w>9?fmt(s.deb).slice(0,5)+'→'+fmt(s.fin).slice(0,5):''}</div>`;
+      }).join('')+`</div>`;
+
+    /* bloc « avant » */
+    if(avant.length){
+      const det=avant.map(s=>`<div class="formule">${fmt(s.deb)} → ${fmt(s.fin)} : ${s.j} j × ${methode==='arrondi'?fnum(tauxMensuel(s.q))+' CA/mois ÷ 30':`(25 × ${Math.round(s.q*100)} %) ÷ 360`} = ${fnum(methode==='arrondi'?s.j*tauxMensuel(s.q)/30:s.j*25*s.q/360)} → arrondi 0,5 sup = <b>${fnum(s.acquis)} CA</b></div>`).join('');
+      corps+=`<div class="bloc-calc ACT"><h4>Congés acquis avant l'absence (périodes travaillées)</h4>${det}
+        <p style="margin:.3rem 0">Acquis : <b>${fnum(acqAvant)} CA</b> − congés déjà posés au titre de ${an} : <b>${fnum(posesAn)}</b>${ecretAvant?` − écrêtement : <b>${fnum(ecretAvant)}</b>`:''} = <b>${fnum(reportAvant)} CA à reporter</b></p>
+        ${reportAvant<0?`<p class="err">Trop‑posés : l'agent a posé plus de congés qu'il n'en a acquis avant son absence. Régularisation de ${fnum(-reportAvant)} j à imputer sur ses droits au report (cf. fiche « Régularisation »).</p>`:
+        `<p style="margin:.2rem 0">Report de 15 mois à compter de la reprise : <b>du ${fmt(departReprise)} au ${fmt(finAvant)}</b> ${etat(finAvant)}</p>`}</div>`;
+    }
+    /* blocs « pendant santé » */
+    for(const s of santeApresEcret){
+      corps+=`<div class="bloc-calc SANTE"><h4>Congés acquis pendant le congé pour raison de santé</h4>
+        <div class="formule">${fmt(s.deb)} → ${fmt(s.fin)} : ${s.j} j × ${methode==='arrondi'?fnum(tauxMensuel(s.q))+' CA/mois ÷ 30':`(25 × ${Math.round(s.q*100)} %) ÷ 360`} = ${fnum(methode==='arrondi'?s.j*tauxMensuel(s.q)/30:s.j*25*s.q/360)} → arrondi 0,5 sup = <b>${fnum(s.acquis)} CA</b></div>
+        ${s.retenu!==s.acquis?`<p style="margin:.2rem 0">Après écrêtement (plafond ${fnum(capS)} j) : <b>${fnum(s.retenu)} CA retenus</b></p>`:''}
+        <p style="margin:.2rem 0">Report de 15 mois ${repriseCetteAnnee?`à compter de la reprise`:`à compter du 01/01/${an+1} (absence au‑delà du 31/12/${an})`} : <b>du ${fmt(departPendant)} au ${fmt(finPendant)}</b> ${etat(finPendant)}</p></div>`;
+    }
+    /* blocs « pendant familial » */
+    for(const s of fam){
+      corps+=`<div class="bloc-calc FAM"><h4>Congés acquis pendant le congé lié aux responsabilités parentales ou familiales</h4>
+        <div class="formule">${fmt(s.deb)} → ${fmt(s.fin)} : ${s.j} j × ${methode==='arrondi'?fnum(tauxMensuel(s.q))+' CA/mois ÷ 30':`(25 × ${Math.round(s.q*100)} %) ÷ 360`} = ${fnum(methode==='arrondi'?s.j*tauxMensuel(s.q)/30:s.j*25*s.q/360)} → arrondi 0,5 sup = <b>${fnum(s.acquis)} CA</b> <span class="aide">(rappel : temps partiel suspendu pendant la maternité → quotité 100 %)</span></div>
+        <p style="margin:.2rem 0">Report de 15 mois ${repriseCetteAnnee?`à compter de la reprise`:`à compter du 01/01/${an+1}`} : <b>du ${fmt(departPendant)} au ${fmt(finPendant)}</b> ${etat(finPendant)} — limite de 25 j non opposable en pratique</p></div>`;
+    }
+    /* périodes sans acquisition */
+    for(const s of none){
+      corps+=`<div class="bloc-calc" style="border-left-color:var(--none)"><h4>Période sans acquisition (congé parental, DOF…)</h4>
+        <div class="formule">${fmt(s.deb)} → ${fmt(s.fin)} : aucune génération de congés annuels</div></div>`;
+    }
+    /* écrêtement global */
+    if(ecret>0){
+      corps+=`<div class="bloc-calc ECRET"><h4>Écrêtement — plafond « maladie »</h4>
+        <p style="margin:.2rem 0">Cumul soumis au plafond : ${causeAvant==='SANTE'?fnum(acqAvant)+' (avant, bruts) + ':''}${fnum(acqSante)} (pendant maladie) = <b>${fnum(poolSante)} CA</b> &gt; plafond de <b>${fnum(capS)} j</b> (20 j × ${Math.round(quotCap*100)} %).</p>
+        <p style="margin:.2rem 0">Écrêtement de <b>${fnum(ecret)} j</b>, imputé sur le compteur des congés acquis pendant le congé pour raison de santé${ecretAvant?` puis sur le solde « avant » (${fnum(ecretAvant)} j)`:''}.</p>
+        <p class="aide">Plafond calculé sur la base de ${Math.round(quotCap*100)} % (${srcCap}).</p></div>`;
+    } else if(sante.length||causeAvant==='SANTE'){
+      corps+=`<p class="aide">Plafond « maladie » : cumul de ${fnum(poolSante)} CA ≤ ${fnum(capS)} j (20 j × ${Math.round(quotCap*100)} %, ${srcCap}) — aucun écrêtement à opérer.</p>`;
+    }
+    if(fam.length){
+      corps+=`<p class="aide">Plafond « parental / familial » : ${fnum(poolFam)} CA ≤ 25 j — aucun écrêtement.</p>`;
+    }
+    /* activité après reprise */
+    if(apres.length && repriseCetteAnnee){
+      corps+=`<div class="note" style="margin:.6rem 0">Les congés acquis à compter de la reprise (${fmt(reprise)}) relèvent du régime de droit commun : à utiliser selon le règlement du temps de travail en vigueur, soit jusqu'au <b>30/04/${an+1}</b>, et à proratiser selon la quotité.</div>`;
+    }
+    /* option CeA */
+    if(optionCeA && (sante.length||fam.length)){
+      corps+=`<div class="note" style="margin:.6rem 0"><span class="badge option">choix à solliciter</span> L'agent a repris (ou reprendra) avant le 30/04/${an+1} : pour les congés de l'année ${an}, il convient de l'informer des deux options — <b>report de 15 mois</b> (plafonné à ${fnum(capS)} j au titre de la maladie) <b>ou</b> bénéfice de la période de référence CeA jusqu'au <b>30/04/${an+1}</b> (avec perte des jours non pris dans ce délai). Le retour du choix est classé au dossier individuel.</div>`;
+    }
+
+    /* récapitulatif */
+    const totalPendantS = santeApresEcret.reduce((t,s)=>t+s.retenu,0);
+    if(avant.length && reportAvant>0) lignesRecap.push([`CA ${an} acquis avant l'absence`, fnum(reportAvant), `${fmt(departReprise)} → ${fmt(finAvant)}`, finAvant]);
+    if(avant.length && reportAvant<0) lignesRecap.push([`CA ${an} — régularisation trop‑posés`, fnum(reportAvant), `à imputer sur les reports`, null]);
+    if(totalPendantS>0) lignesRecap.push([`CA ${an} acquis pendant la maladie`, fnum(totalPendantS), `${fmt(departPendant)} → ${fmt(finPendant)}`, finPendant]);
+    if(acqFam>0) lignesRecap.push([`CA ${an} acquis pendant le congé parental/familial`, fnum(acqFam), `${fmt(departPendant)} → ${fmt(finPendant)}`, finPendant]);
+
+    html+=`<div class="annee"><h3>Année ${an} — période de référence du 01/01/${an} au 31/12/${an}</h3><div class="corps">${corps}</div></div>`;
+  }
+
+  /* Récapitulatif global */
+  const agent=document.getElementById('agent').value;
+  let recap=`<div class="annee"><h3>Fiche de calcul des reliquats de congés reportés (RCR)</h3><div class="corps">
+    <table class="recap" style="margin:0 0 .9rem"><tr><th style="width:36%">Agent</th><td><b>${agent||'<i>non renseigné</i>'}</b></td></tr>
+      <tr><th>Date de reprise (effective ou prévue)</th><td class="mono">${fmt(reprise)}</td></tr>
+      ${infoDate?`<tr><th>Date d'information de l'agent</th><td class="mono">${fmt(infoDate)}</td></tr>`:''}
+      <tr><th>Fiche générée le</th><td class="mono">${fmt(new Date())}</td></tr></table>
+    ${noteInfo?`<div class="note">${noteInfo}</div>`:`<div class="note no-print">Aucune date d'information saisie : les reports « à compter de la reprise » courent à partir du ${fmt(reprise)}. Pensez à l'obligation d'information (fiche « Information obligatoire de l'agent »).</div>`}
+    <table class="recap"><tr><th>Droit à report</th><th>Jours</th><th>Fenêtre de report (15 mois)</th><th>État</th></tr>`;
+  let total=0;
+  for(const l of lignesRecap){
+    const j=parseFloat(String(l[1]).replace(',','.'));
+    const utilisable = l[3]===null ? false : !(l[3]<reprise);
+    if(!isNaN(j) && utilisable && j>0) total+=j;
+    if(!isNaN(j) && j<0) total+=j;
+    const etat = l[3]===null?'—': l[3]<reprise?'Perdus': l[3]<new Date()?'Échéance dépassée':'En cours';
+    recap+=`<tr><td>${l[0]}</td><td class="mono">${l[1]}</td><td class="mono">${l[2]}</td><td>${etat}</td></tr>`;
+  }
+  recap+=`</table>
+    <div class="total-bar">Total des jours à reporter (fenêtres non échues à la reprise) : <b>${fnum(total)} jours</b></div>
+    <p class="aide" style="margin-top:.6rem">Convention 30 j/mois, arrondi au 0,5 supérieur, plafond « maladie » de 20 j proratisé selon la quotité (détail année par année ci-dessous). Ce calcul (RCR) et le retour du choix de l'agent sont à classer au dossier individuel. Rappel CET : pas d'alimentation si moins de 20 jours de congés posés dans l'année.</p>
+  </div></div>`;
+
+  document.getElementById('resultats').innerHTML = html ? recap+html :
+    `<div class="note alerte">Aucune période d'absence ouvrant droit à report n'a été identifiée dans la chronologie saisie.</div>`;
+  document.getElementById('resultats').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>
