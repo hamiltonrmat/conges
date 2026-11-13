@@ -1,4 +1,4 @@
-# Outil de calcul des reports de congés — Collectivité européenne d'Alsace
+# Outil de calcul des reports de congés
 
 > Usage interne RH · régime applicable à compter du **1er juillet 2026** (décret n° 2025‑564 du 21 juin 2025)
 > Fichier de l'outil : `interface/report-conges-interface-v3.html` — **un seul fichier**, aucun serveur, aucune installation.
